@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/catsby/gws/cmd"
 
 func main() {
-	fmt.Println("Hello from gws")
+	cmd.Execute()
 }
