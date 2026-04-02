@@ -32,7 +32,7 @@ Non-interactive worktree creation.
 
 ### `gws rm`
 
-TUI picker listing existing worktrees (not root). On selection, show full path and branch name in the confirmation prompt. Runs `git worktree remove <path>` on confirm.
+TUI picker listing existing worktrees (excludes root and the current worktree). On selection, show full path and branch name in the confirmation prompt. Runs `git worktree remove <path>` on confirm. If git fails, show its stderr output and exit 2.
 
 ### `gws init <shell>`
 
@@ -56,7 +56,7 @@ Usage: `gws init zsh >> ~/.zshrc`
 
 ### `gws list`
 
-Non-interactive. Prints worktree paths and branch names to stdout. Useful for scripting.
+Non-interactive. Tab-delimited, two columns: `<absolute-path>\t<branch-name>`. One line per worktree. Useful for scripting with `cut`/`awk`.
 
 ## Implementation Notes
 
