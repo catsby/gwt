@@ -117,7 +117,7 @@ func CreateWorktree(name string, trackBranch string) (string, error) {
 
 	var args []string
 	if trackBranch != "" {
-		args = []string{"worktree", "add", wtPath, "--track", trackBranch}
+		args = []string{"worktree", "add", wtPath, "-b", name, "--track", trackBranch}
 	} else {
 		args = []string{"worktree", "add", wtPath}
 	}

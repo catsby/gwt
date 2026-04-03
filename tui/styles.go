@@ -10,4 +10,5 @@ var (
 	ErrorStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	SpinnerStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	ScrollHintStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Faint(true)
+	SeparatorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Faint(true)
 )

@@ -14,6 +14,7 @@ import (
 )
 
 const defaultMaxVisible = 10
+const remoteFilterMinChars = 3
 
 type state int
 
@@ -25,26 +26,28 @@ const (
 
 // listItem represents a unified entry in the picker list.
 type listItem struct {
-	display    string // display text
-	path       string // worktree path (empty for remote branches)
-	branch     string // branch name
-	isWorktree bool
+	display     string // display text
+	path        string // worktree path (empty for remote branches)
+	branch      string // branch name
+	isWorktree  bool
+	isSeparator bool
 }
 
 type pickerModel struct {
-	items      []listItem
-	filtered   []listItem
-	cursor     int
-	offset     int
-	maxVisible int
-	filter     textinput.Model
-	spinner    spinner.Model
-	state      state
-	selected   listItem
-	result     string
-	err        error
-	quitting   bool
-	createErr  string
+	items          []listItem
+	remoteBranches []listItem
+	filtered       []listItem
+	cursor         int
+	offset         int
+	maxVisible     int
+	filter         textinput.Model
+	spinner        spinner.Model
+	state          state
+	selected       listItem
+	result         string
+	err            error
+	quitting       bool
+	createErr      string
 }
 
 type worktreeCreatedMsg struct {
@@ -72,6 +75,18 @@ func newPickerModel() (pickerModel, error) {
 		})
 	}
 
+	remotes, err := gitops.ListRemoteBranches()
+	if err != nil {
+		return pickerModel{}, fmt.Errorf("listing remote branches: %w", err)
+	}
+	var remoteBranches []listItem
+	for _, rb := range remotes {
+		remoteBranches = append(remoteBranches, listItem{
+			display: rb,
+			branch:  rb,
+		})
+	}
+
 	ti := textinput.New()
 	ti.Placeholder = "Filter..."
 	ti.Focus()
@@ -81,12 +96,13 @@ func newPickerModel() (pickerModel, error) {
 	s.Style = SpinnerStyle
 
 	m := pickerModel{
-		items:      items,
-		filtered:   items,
-		filter:     ti,
-		spinner:    s,
-		state:      stateBrowsing,
-		maxVisible: defaultMaxVisible,
+		items:          items,
+		remoteBranches: remoteBranches,
+		filtered:       items,
+		filter:         ti,
+		spinner:        s,
+		state:          stateBrowsing,
+		maxVisible:     defaultMaxVisible,
 	}
 	return m, nil
 }
@@ -132,6 +148,9 @@ func (m pickerModel) updateBrowsing(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.selected = m.filtered[m.cursor]
+			if m.selected.isSeparator {
+				return m, nil
+			}
 			if m.selected.isWorktree {
 				m.result = m.selected.path
 				m.quitting = true
@@ -142,6 +161,12 @@ func (m pickerModel) updateBrowsing(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up":
 			if m.cursor > 0 {
 				m.cursor--
+				if m.cursor >= 0 && m.filtered[m.cursor].isSeparator {
+					m.cursor--
+				}
+				if m.cursor < 0 {
+					m.cursor = 0
+				}
 				if m.cursor < m.offset {
 					m.offset = m.cursor
 				}
@@ -150,6 +175,12 @@ func (m pickerModel) updateBrowsing(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "down":
 			if m.cursor < len(m.filtered)-1 {
 				m.cursor++
+				if m.cursor < len(m.filtered) && m.filtered[m.cursor].isSeparator {
+					m.cursor++
+				}
+				if m.cursor >= len(m.filtered) {
+					m.cursor = len(m.filtered) - 1
+				}
 				if m.cursor >= m.offset+m.maxVisible {
 					m.offset = m.cursor - m.maxVisible + 1
 				}
@@ -232,17 +263,34 @@ func (m *pickerModel) applyFilter() {
 		return
 	}
 
-	// Build source list for fuzzy matching.
-	sources := make([]string, len(m.items))
+	// Fuzzy match against local worktrees.
+	wtSources := make([]string, len(m.items))
 	for i, item := range m.items {
-		sources[i] = item.display
+		wtSources[i] = item.display
 	}
-	matches := fuzzy.Find(query, sources)
+	wtMatches := fuzzy.Find(query, wtSources)
 
-	m.filtered = make([]listItem, len(matches))
-	for i, match := range matches {
-		m.filtered[i] = m.items[match.Index]
+	var filtered []listItem
+	for _, match := range wtMatches {
+		filtered = append(filtered, m.items[match.Index])
 	}
+
+	// Include remote branches when query is long enough.
+	if len(query) >= remoteFilterMinChars && len(m.remoteBranches) > 0 {
+		rbSources := make([]string, len(m.remoteBranches))
+		for i, item := range m.remoteBranches {
+			rbSources[i] = item.display
+		}
+		rbMatches := fuzzy.Find(query, rbSources)
+		if len(rbMatches) > 0 {
+			filtered = append(filtered, listItem{isSeparator: true, display: "remote branches"})
+			for _, match := range rbMatches {
+				filtered = append(filtered, m.remoteBranches[match.Index])
+			}
+		}
+	}
+
+	m.filtered = filtered
 	m.cursor = 0
 	m.offset = 0
 }
@@ -277,13 +325,25 @@ func (m pickerModel) View() string {
 
 			for i := m.offset; i < end; i++ {
 				item := m.filtered[i]
+
+				if item.isSeparator {
+					b.WriteString(SeparatorStyle.Render("  ── "+item.display+" ──") + "\n")
+					continue
+				}
+
 				cursor := "  "
 				if i == m.cursor {
 					cursor = "> "
 				}
 
-				prefix := "● "
-				text := WorktreeStyle.Render(item.display)
+				var prefix, text string
+				if item.isWorktree {
+					prefix = "● "
+					text = WorktreeStyle.Render(item.display)
+				} else {
+					prefix = "○ "
+					text = RemoteBranchStyle.Render(item.display)
+				}
 
 				line := cursor + prefix + text
 				if i == m.cursor {
