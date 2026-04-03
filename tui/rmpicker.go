@@ -238,11 +238,14 @@ func (m rmPickerModel) View() string {
 
 	switch m.state {
 	case rmBrowsing:
+		b.WriteString(TitleStyle.Render("\u276f gwt rm"))
+		b.WriteString("\n")
 		b.WriteString(m.filter.View())
 		b.WriteString("\n\n")
 
+		var listContent strings.Builder
 		if len(m.filtered) == 0 {
-			b.WriteString("  No worktrees to remove.\n")
+			listContent.WriteString("No worktrees to remove.\n")
 		} else {
 			end := m.offset + m.maxVisible
 			if end > len(m.filtered) {
@@ -250,27 +253,30 @@ func (m rmPickerModel) View() string {
 			}
 
 			if m.offset > 0 {
-				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↑ %d more", m.offset)) + "\n")
+				listContent.WriteString(ScrollHintStyle.Render(fmt.Sprintf("↑ %d more", m.offset)) + "\n")
 			}
 
 			for i := m.offset; i < end; i++ {
 				item := m.filtered[i]
-				cursor := "  "
+				var cursor string
 				if i == m.cursor {
-					cursor = "> "
+					cursor = CursorStyle.Render(">") + " "
+				} else {
+					cursor = "  "
 				}
 				text := WorktreeStyle.Render("● " + item.display)
 				line := cursor + text
 				if i == m.cursor {
-					line = SelectedStyle.Render(cursor+"● ") + WorktreeStyle.Render(item.display)
+					line = cursor + SelectedStyle.Render("● ") + WorktreeStyle.Render(item.display)
 				}
-				b.WriteString(line + "\n")
+				listContent.WriteString(line + "\n")
 			}
 
 			if remaining := len(m.filtered) - end; remaining > 0 {
-				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↓ %d more", remaining)) + "\n")
+				listContent.WriteString(ScrollHintStyle.Render(fmt.Sprintf("↓ %d more", remaining)) + "\n")
 			}
 		}
+		b.WriteString(ListContainerStyle.Render(listContent.String()))
 
 	case rmConfirming:
 		b.WriteString(PromptStyle.Render(

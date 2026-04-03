@@ -304,6 +304,8 @@ func (m pickerModel) View() string {
 
 	switch m.state {
 	case stateBrowsing:
+		b.WriteString(TitleStyle.Render("\u276f gwt"))
+		b.WriteString("\n")
 		b.WriteString(m.filter.View())
 		b.WriteString("\n\n")
 
@@ -311,8 +313,9 @@ func (m pickerModel) View() string {
 			b.WriteString(ErrorStyle.Render("Error: "+m.createErr) + "\n\n")
 		}
 
+		var listContent strings.Builder
 		if len(m.filtered) == 0 {
-			b.WriteString("  No matches.\n")
+			listContent.WriteString("No matches.\n")
 		} else {
 			end := m.offset + m.maxVisible
 			if end > len(m.filtered) {
@@ -320,20 +323,22 @@ func (m pickerModel) View() string {
 			}
 
 			if m.offset > 0 {
-				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↑ %d more", m.offset)) + "\n")
+				listContent.WriteString(ScrollHintStyle.Render(fmt.Sprintf("↑ %d more", m.offset)) + "\n")
 			}
 
 			for i := m.offset; i < end; i++ {
 				item := m.filtered[i]
 
 				if item.isSeparator {
-					b.WriteString(SeparatorStyle.Render("  ── "+item.display+" ──") + "\n")
+					listContent.WriteString(SeparatorStyle.Render("── "+item.display+" ──") + "\n")
 					continue
 				}
 
-				cursor := "  "
+				var cursor string
 				if i == m.cursor {
-					cursor = "> "
+					cursor = CursorStyle.Render(">") + " "
+				} else {
+					cursor = "  "
 				}
 
 				var prefix, text string
@@ -347,15 +352,16 @@ func (m pickerModel) View() string {
 
 				line := cursor + prefix + text
 				if i == m.cursor {
-					line = SelectedStyle.Render(cursor+prefix) + text
+					line = cursor + SelectedStyle.Render(prefix) + text
 				}
-				b.WriteString(line + "\n")
+				listContent.WriteString(line + "\n")
 			}
 
 			if remaining := len(m.filtered) - end; remaining > 0 {
-				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↓ %d more", remaining)) + "\n")
+				listContent.WriteString(ScrollHintStyle.Render(fmt.Sprintf("↓ %d more", remaining)) + "\n")
 			}
 		}
+		b.WriteString(ListContainerStyle.Render(listContent.String()))
 
 	case stateConfirming:
 		b.WriteString(PromptStyle.Render(
