@@ -1,6 +1,14 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"os"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
+func init() {
+	lipgloss.SetDefaultRenderer(lipgloss.NewRenderer(os.Stderr))
+}
 
 // Adaptive colors that work on both light and dark terminal backgrounds.
 // Format: AdaptiveColor{Light: "<dark-bg-friendly>", Dark: "<light-bg-friendly>"}
