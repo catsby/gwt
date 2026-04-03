@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/catsby/gws/gitops"
+	"github.com/catsby/gwt/gitops"
 )
 
 func runList() {

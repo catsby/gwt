@@ -5,9 +5,9 @@ import (
 	"os"
 )
 
-const shellWrapperZsh = `gws() {
+const shellWrapperZsh = `gwt() {
   local target
-  GWS_WRAPPED=1 target=$(command gws "$@")
+  gwt_WRAPPED=1 target=$(command gwt "$@")
   local exit_code=$?
   if [ $exit_code -eq 0 ] && [ -n "$target" ] && [ -d "$target" ]; then
     cd "$target"
@@ -19,8 +19,8 @@ const shellWrapperZsh = `gws() {
 
 const shellWrapperBash = shellWrapperZsh
 
-const shellWrapperFish = `function gws
-  set -l target (GWS_WRAPPED=1 command gws $argv)
+const shellWrapperFish = `function gwt
+  set -l target (gwt_WRAPPED=1 command gwt $argv)
   set -l exit_code $status
   if test $exit_code -eq 0; and test -n "$target"; and test -d "$target"
     cd $target
@@ -32,7 +32,7 @@ end
 
 func runInit(args []string) {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: gws init <shell>  (zsh, bash, fish)")
+		fmt.Fprintln(os.Stderr, "Usage: gwt init <shell>  (zsh, bash, fish)")
 		os.Exit(2)
 	}
 

@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`gws` (Git Worktree Switcher) is a Go CLI tool for navigating and managing git worktrees via a fuzzy-filterable TUI. It outputs worktree paths to stdout so a shell wrapper can `cd` into them. See `GWS.md` for the full design spec.
+`gwt` (Git Worktree Switcher) is a Go CLI tool for navigating and managing git worktrees via a fuzzy-filterable TUI. It outputs worktree paths to stdout so a shell wrapper can `cd` into them. See `gwt.md` for the full design spec.
 
 ## Build & Run
 
 ```bash
-go build -o gws .
+go build -o gwt .
 go run .
 ```
 
@@ -38,8 +38,8 @@ go vet ./...
 
 ## Commands
 
-- `gws` — TUI picker showing worktrees and remote branches
-- `gws add <name> [--track <remote-branch>]` — non-interactive worktree creation
-- `gws rm` — TUI picker to remove a worktree
-- `gws list` — non-interactive list of worktrees
-- `gws init <shell>` — print shell wrapper function (zsh/bash/fish)
+- `gwt` — TUI picker showing worktrees and remote branches
+- `gwt add <name> [--track <remote-branch>]` — non-interactive worktree creation
+- `gwt rm` — TUI picker to remove a worktree
+- `gwt list` — non-interactive list of worktrees
+- `gwt init <shell>` — print shell wrapper function (zsh/bash/fish)

@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sahilm/fuzzy"
 
-	"github.com/catsby/gws/gitops"
+	"github.com/catsby/gwt/gitops"
 )
 
 type rmState int

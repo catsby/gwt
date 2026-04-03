@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/catsby/gws/tui"
+	"github.com/catsby/gwt/tui"
 )
 
 func runRm() {

@@ -139,10 +139,10 @@ func RemoveWorktree(path string) error {
 }
 
 // WorktreeDir returns the directory where worktrees are created.
-// Uses GWS_WORKTREE_DIR env var if set, otherwise defaults to <git-root>/.claude/worktrees/.
+// Uses gwt_WORKTREE_DIR env var if set, otherwise defaults to <git-root>/.claude/worktrees/.
 // Creates the directory if it does not exist.
 func WorktreeDir() (string, error) {
-	dir := os.Getenv("GWS_WORKTREE_DIR")
+	dir := os.Getenv("gwt_WORKTREE_DIR")
 	if dir == "" {
 		root, err := GitRoot()
 		if err != nil {

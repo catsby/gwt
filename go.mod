@@ -1,4 +1,4 @@
-module github.com/catsby/gws
+module github.com/catsby/gwt
 
 go 1.26.1
 

@@ -166,7 +166,7 @@ func TestWorktreeDir_Default(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// Ensure env var is not set.
-	os.Unsetenv("GWS_WORKTREE_DIR")
+	os.Unsetenv("gwt_WORKTREE_DIR")
 
 	wtDir, err := WorktreeDir()
 	if err != nil {
@@ -195,7 +195,7 @@ func TestWorktreeDir_EnvOverride(t *testing.T) {
 	dir := t.TempDir()
 	customDir := filepath.Join(dir, "custom-worktrees")
 
-	t.Setenv("GWS_WORKTREE_DIR", customDir)
+	t.Setenv("gwt_WORKTREE_DIR", customDir)
 
 	wtDir, err := WorktreeDir()
 	if err != nil {
@@ -224,7 +224,7 @@ func TestCreateAndRemoveWorktree(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	t.Setenv("GWS_WORKTREE_DIR", filepath.Join(dir, ".claude", "worktrees"))
+	t.Setenv("gwt_WORKTREE_DIR", filepath.Join(dir, ".claude", "worktrees"))
 
 	wtPath, err := CreateWorktree("test-feature", "")
 	if err != nil {

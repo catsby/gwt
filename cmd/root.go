@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/catsby/gws/tui"
+	"github.com/catsby/gwt/tui"
 )
 
 func Execute() {
 	args := os.Args[1:]
 
 	if len(args) == 0 {
-		if os.Getenv("GWS_WRAPPED") == "" {
-			fmt.Fprintln(os.Stderr, `Tip: eval "$(gws init zsh)" to enable directory switching`)
+		if os.Getenv("gwt_WRAPPED") == "" {
+			fmt.Fprintln(os.Stderr, `Tip: eval "$(gwt init zsh)" to enable directory switching`)
 		}
 		path, err := tui.RunPicker()
 		if err != nil {
@@ -42,7 +42,7 @@ func Execute() {
 }
 
 func printUsage() {
-	fmt.Fprintln(os.Stderr, `Usage: gws [command]
+	fmt.Fprintln(os.Stderr, `Usage: gwt [command]
 
 Commands:
   (none)    Launch TUI worktree picker

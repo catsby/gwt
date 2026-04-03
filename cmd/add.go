@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/catsby/gws/gitops"
+	"github.com/catsby/gwt/gitops"
 )
 
 func parseAddArgs(args []string) (name, trackBranch string, err error) {
@@ -33,7 +33,7 @@ func runAdd(args []string) {
 	name, trackBranch, err := parseAddArgs(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
-		fmt.Fprintln(os.Stderr, "Usage: gws add <name> [--track <remote-branch>]")
+		fmt.Fprintln(os.Stderr, "Usage: gwt add <name> [--track <remote-branch>]")
 		os.Exit(2)
 	}
 
