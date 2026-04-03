@@ -6,10 +6,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func init() {
-	lipgloss.SetDefaultRenderer(lipgloss.NewRenderer(os.Stderr))
-}
-
 // Adaptive colors that work on both light and dark terminal backgrounds.
 // Format: AdaptiveColor{Light: "<dark-bg-friendly>", Dark: "<light-bg-friendly>"}
 var (
@@ -20,28 +16,47 @@ var (
 	colorPurple = lipgloss.AdaptiveColor{Light: "#6c3ec2", Dark: "#b48ead"}
 )
 
+// Style vars declared at package level, initialized in init() so the
+// stderr renderer is set first. This ensures correct color detection
+// when stdout is a pipe (e.g. the shell wrapper's $() subshell).
 var (
+	TitleStyle         lipgloss.Style
+	ListContainerStyle lipgloss.Style
+	CursorStyle        lipgloss.Style
+	WorktreeStyle      lipgloss.Style
+	RemoteBranchStyle  lipgloss.Style
+	SelectedStyle      lipgloss.Style
+	PromptStyle        lipgloss.Style
+	ErrorStyle         lipgloss.Style
+	SpinnerStyle       lipgloss.Style
+	ScrollHintStyle    lipgloss.Style
+	SeparatorStyle     lipgloss.Style
+)
+
+func init() {
+	lipgloss.SetDefaultRenderer(lipgloss.NewRenderer(os.Stderr))
+
 	TitleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorPurple).
-			PaddingBottom(1)
+		Bold(true).
+		Foreground(colorPurple).
+		PaddingBottom(1)
 
 	ListContainerStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(colorGray).
-				PaddingLeft(1).
-				PaddingRight(1)
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(colorGray).
+		PaddingLeft(1).
+		PaddingRight(1)
 
 	CursorStyle = lipgloss.NewStyle().
-			Foreground(colorCyan).
-			Bold(true)
+		Foreground(colorCyan).
+		Bold(true)
 
-	WorktreeStyle     = lipgloss.NewStyle().Foreground(colorGreen)
+	WorktreeStyle = lipgloss.NewStyle().Foreground(colorGreen)
 	RemoteBranchStyle = lipgloss.NewStyle().Foreground(colorGray)
-	SelectedStyle     = lipgloss.NewStyle().Bold(true)
-	PromptStyle       = lipgloss.NewStyle().Foreground(colorCyan)
-	ErrorStyle        = lipgloss.NewStyle().Foreground(colorRed)
-	SpinnerStyle      = lipgloss.NewStyle().Foreground(colorCyan)
-	ScrollHintStyle   = lipgloss.NewStyle().Foreground(colorGray).Faint(true)
-	SeparatorStyle    = lipgloss.NewStyle().Foreground(colorGray).Faint(true)
-)
+	SelectedStyle = lipgloss.NewStyle().Bold(true)
+	PromptStyle = lipgloss.NewStyle().Foreground(colorCyan)
+	ErrorStyle = lipgloss.NewStyle().Foreground(colorRed)
+	SpinnerStyle = lipgloss.NewStyle().Foreground(colorCyan)
+	ScrollHintStyle = lipgloss.NewStyle().Foreground(colorGray).Faint(true)
+	SeparatorStyle = lipgloss.NewStyle().Foreground(colorGray).Faint(true)
+}

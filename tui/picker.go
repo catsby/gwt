@@ -304,8 +304,6 @@ func (m pickerModel) View() string {
 
 	switch m.state {
 	case stateBrowsing:
-		b.WriteString(TitleStyle.Render("\u276f gwt"))
-		b.WriteString("\n")
 		b.WriteString(m.filter.View())
 		b.WriteString("\n\n")
 
