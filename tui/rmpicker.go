@@ -21,16 +21,18 @@ const (
 )
 
 type rmPickerModel struct {
-	items     []listItem
-	filtered  []listItem
-	cursor    int
-	filter    textinput.Model
-	state     rmState
-	selected  listItem
-	err       error
-	quitting  bool
-	removed   bool
-	removeErr string
+	items      []listItem
+	filtered   []listItem
+	cursor     int
+	offset     int
+	maxVisible int
+	filter     textinput.Model
+	state      rmState
+	selected   listItem
+	err        error
+	quitting   bool
+	removed    bool
+	removeErr  string
 }
 
 type worktreeRemovedMsg struct {
@@ -75,10 +77,11 @@ func newRmPickerModel() (rmPickerModel, error) {
 	ti.Focus()
 
 	return rmPickerModel{
-		items:    items,
-		filtered: items,
-		filter:   ti,
-		state:    rmBrowsing,
+		items:      items,
+		filtered:   items,
+		filter:     ti,
+		state:      rmBrowsing,
+		maxVisible: defaultMaxVisible,
 	}, nil
 }
 
@@ -100,6 +103,19 @@ func (m rmPickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m rmPickerModel) updateBrowsing(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		if avail := msg.Height - 5; avail > 0 && avail < defaultMaxVisible {
+			m.maxVisible = avail
+		} else {
+			m.maxVisible = defaultMaxVisible
+		}
+		if m.offset+m.maxVisible > len(m.filtered) {
+			m.offset = max(0, len(m.filtered)-m.maxVisible)
+		}
+		if m.cursor >= m.offset+m.maxVisible {
+			m.offset = m.cursor - m.maxVisible + 1
+		}
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
@@ -115,11 +131,17 @@ func (m rmPickerModel) updateBrowsing(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up":
 			if m.cursor > 0 {
 				m.cursor--
+				if m.cursor < m.offset {
+					m.offset = m.cursor
+				}
 			}
 			return m, nil
 		case "down":
 			if m.cursor < len(m.filtered)-1 {
 				m.cursor++
+				if m.cursor >= m.offset+m.maxVisible {
+					m.offset = m.cursor - m.maxVisible + 1
+				}
 			}
 			return m, nil
 		}
@@ -186,6 +208,7 @@ func (m *rmPickerModel) applyFilter() {
 	if query == "" {
 		m.filtered = m.items
 		m.cursor = 0
+		m.offset = 0
 		return
 	}
 
@@ -200,6 +223,7 @@ func (m *rmPickerModel) applyFilter() {
 		m.filtered[i] = m.items[match.Index]
 	}
 	m.cursor = 0
+	m.offset = 0
 }
 
 func (m rmPickerModel) View() string {
@@ -220,7 +244,17 @@ func (m rmPickerModel) View() string {
 		if len(m.filtered) == 0 {
 			b.WriteString("  No worktrees to remove.\n")
 		} else {
-			for i, item := range m.filtered {
+			end := m.offset + m.maxVisible
+			if end > len(m.filtered) {
+				end = len(m.filtered)
+			}
+
+			if m.offset > 0 {
+				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↑ %d more", m.offset)) + "\n")
+			}
+
+			for i := m.offset; i < end; i++ {
+				item := m.filtered[i]
 				cursor := "  "
 				if i == m.cursor {
 					cursor = "> "
@@ -231,6 +265,10 @@ func (m rmPickerModel) View() string {
 					line = SelectedStyle.Render(cursor+"● ") + WorktreeStyle.Render(item.display)
 				}
 				b.WriteString(line + "\n")
+			}
+
+			if remaining := len(m.filtered) - end; remaining > 0 {
+				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↓ %d more", remaining)) + "\n")
 			}
 		}
 
@@ -258,7 +296,7 @@ func RunRemovePicker() error {
 		return nil
 	}
 
-	p := tea.NewProgram(m, tea.WithOutput(os.Stderr), tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
 	finalModel, err := p.Run()
 	if err != nil {
 		return fmt.Errorf("TUI error: %w", err)

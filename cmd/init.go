@@ -7,7 +7,7 @@ import (
 
 const shellWrapperZsh = `gwt() {
   local target
-  gwt_WRAPPED=1 target=$(command gwt "$@")
+  target=$(gwt_WRAPPED=1 command gwt "$@")
   local exit_code=$?
   if [ $exit_code -eq 0 ] && [ -n "$target" ] && [ -d "$target" ]; then
     cd "$target"
@@ -20,7 +20,7 @@ const shellWrapperZsh = `gwt() {
 const shellWrapperBash = shellWrapperZsh
 
 const shellWrapperFish = `function gwt
-  set -l target (gwt_WRAPPED=1 command gwt $argv)
+  set -l target (env gwt_WRAPPED=1 command gwt $argv)
   set -l exit_code $status
   if test $exit_code -eq 0; and test -n "$target"; and test -d "$target"
     cd $target

@@ -13,6 +13,8 @@ import (
 	"github.com/catsby/gwt/gitops"
 )
 
+const defaultMaxVisible = 10
+
 type state int
 
 const (
@@ -30,17 +32,19 @@ type listItem struct {
 }
 
 type pickerModel struct {
-	items     []listItem
-	filtered  []listItem
-	cursor    int
-	filter    textinput.Model
-	spinner   spinner.Model
-	state     state
-	selected  listItem
-	result    string
-	err       error
-	quitting  bool
-	createErr string
+	items      []listItem
+	filtered   []listItem
+	cursor     int
+	offset     int
+	maxVisible int
+	filter     textinput.Model
+	spinner    spinner.Model
+	state      state
+	selected   listItem
+	result     string
+	err        error
+	quitting   bool
+	createErr  string
 }
 
 type worktreeCreatedMsg struct {
@@ -52,10 +56,6 @@ func newPickerModel() (pickerModel, error) {
 	worktrees, err := gitops.ListWorktrees()
 	if err != nil {
 		return pickerModel{}, fmt.Errorf("listing worktrees: %w", err)
-	}
-	remotes, err := gitops.ListRemoteBranches()
-	if err != nil {
-		return pickerModel{}, fmt.Errorf("listing remote branches: %w", err)
 	}
 
 	var items []listItem
@@ -71,13 +71,6 @@ func newPickerModel() (pickerModel, error) {
 			isWorktree: true,
 		})
 	}
-	for _, rb := range remotes {
-		items = append(items, listItem{
-			display:    rb,
-			branch:     rb,
-			isWorktree: false,
-		})
-	}
 
 	ti := textinput.New()
 	ti.Placeholder = "Filter..."
@@ -88,11 +81,12 @@ func newPickerModel() (pickerModel, error) {
 	s.Style = SpinnerStyle
 
 	m := pickerModel{
-		items:    items,
-		filtered: items,
-		filter:   ti,
-		spinner:  s,
-		state:    stateBrowsing,
+		items:      items,
+		filtered:   items,
+		filter:     ti,
+		spinner:    s,
+		state:      stateBrowsing,
+		maxVisible: defaultMaxVisible,
 	}
 	return m, nil
 }
@@ -115,6 +109,19 @@ func (m pickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m pickerModel) updateBrowsing(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		if avail := msg.Height - 5; avail > 0 && avail < defaultMaxVisible {
+			m.maxVisible = avail
+		} else {
+			m.maxVisible = defaultMaxVisible
+		}
+		if m.offset+m.maxVisible > len(m.filtered) {
+			m.offset = max(0, len(m.filtered)-m.maxVisible)
+		}
+		if m.cursor >= m.offset+m.maxVisible {
+			m.offset = m.cursor - m.maxVisible + 1
+		}
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
@@ -135,11 +142,17 @@ func (m pickerModel) updateBrowsing(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up":
 			if m.cursor > 0 {
 				m.cursor--
+				if m.cursor < m.offset {
+					m.offset = m.cursor
+				}
 			}
 			return m, nil
 		case "down":
 			if m.cursor < len(m.filtered)-1 {
 				m.cursor++
+				if m.cursor >= m.offset+m.maxVisible {
+					m.offset = m.cursor - m.maxVisible + 1
+				}
 			}
 			return m, nil
 		}
@@ -215,6 +228,7 @@ func (m *pickerModel) applyFilter() {
 	if query == "" {
 		m.filtered = m.items
 		m.cursor = 0
+		m.offset = 0
 		return
 	}
 
@@ -230,6 +244,7 @@ func (m *pickerModel) applyFilter() {
 		m.filtered[i] = m.items[match.Index]
 	}
 	m.cursor = 0
+	m.offset = 0
 }
 
 func (m pickerModel) View() string {
@@ -251,26 +266,34 @@ func (m pickerModel) View() string {
 		if len(m.filtered) == 0 {
 			b.WriteString("  No matches.\n")
 		} else {
-			for i, item := range m.filtered {
+			end := m.offset + m.maxVisible
+			if end > len(m.filtered) {
+				end = len(m.filtered)
+			}
+
+			if m.offset > 0 {
+				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↑ %d more", m.offset)) + "\n")
+			}
+
+			for i := m.offset; i < end; i++ {
+				item := m.filtered[i]
 				cursor := "  "
 				if i == m.cursor {
 					cursor = "> "
 				}
 
-				var prefix, text string
-				if item.isWorktree {
-					prefix = "● "
-					text = WorktreeStyle.Render(item.display)
-				} else {
-					prefix = "○ "
-					text = RemoteBranchStyle.Render(item.display)
-				}
+				prefix := "● "
+				text := WorktreeStyle.Render(item.display)
 
 				line := cursor + prefix + text
 				if i == m.cursor {
 					line = SelectedStyle.Render(cursor+prefix) + text
 				}
 				b.WriteString(line + "\n")
+			}
+
+			if remaining := len(m.filtered) - end; remaining > 0 {
+				b.WriteString(ScrollHintStyle.Render(fmt.Sprintf("  ↓ %d more", remaining)) + "\n")
 			}
 		}
 
@@ -294,7 +317,7 @@ func RunPicker() (string, error) {
 		return "", err
 	}
 
-	p := tea.NewProgram(m, tea.WithOutput(os.Stderr), tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
 	finalModel, err := p.Run()
 	if err != nil {
 		return "", fmt.Errorf("TUI error: %w", err)
