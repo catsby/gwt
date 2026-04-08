@@ -105,21 +105,35 @@ func ListRemoteBranches() ([]string, error) {
 	return branches, nil
 }
 
+// sanitizeName replaces slashes with dashes so branch names like "feat/http2"
+// become "feat-http2" on disk instead of creating nested directories.
+func sanitizeName(name string) string {
+	return strings.ReplaceAll(name, "/", "-")
+}
+
 // CreateWorktree creates a new worktree under the worktree directory.
 // If trackBranch is non-empty, the worktree tracks that remote branch.
+// If trackBranch is empty and origin/<name> exists, it auto-tracks that remote branch.
 // Returns the absolute path of the new worktree.
 func CreateWorktree(name string, trackBranch string) (string, error) {
 	dir, err := WorktreeDir()
 	if err != nil {
 		return "", err
 	}
-	wtPath := filepath.Join(dir, name)
+	safeName := sanitizeName(name)
+	wtPath := filepath.Join(dir, safeName)
 
 	var args []string
 	if trackBranch != "" {
-		args = []string{"worktree", "add", wtPath, "-b", name, "--track", trackBranch}
+		args = []string{"worktree", "add", wtPath, "-b", safeName, "--track", trackBranch}
 	} else {
-		args = []string{"worktree", "add", wtPath}
+		// Auto-detect: if origin/<name> exists, track it.
+		_, detectErr := runGit("rev-parse", "--verify", "origin/"+name)
+		if detectErr == nil {
+			args = []string{"worktree", "add", wtPath, "-b", safeName, "--track", "origin/" + name}
+		} else {
+			args = []string{"worktree", "add", wtPath}
+		}
 	}
 
 	_, err = runGit(args...)

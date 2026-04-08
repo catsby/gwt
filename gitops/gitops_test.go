@@ -264,6 +264,58 @@ func TestCreateAndRemoveWorktree(t *testing.T) {
 	}
 }
 
+func TestSanitizeName(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"my-feature", "my-feature"},
+		{"feat/http2", "feat-http2"},
+		{"org/team/feature", "org-team-feature"},
+		{"no-slashes-here", "no-slashes-here"},
+		{"a/b/c/d", "a-b-c-d"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := sanitizeName(tt.input)
+			if got != tt.want {
+				t.Errorf("sanitizeName(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCreateWorktree_SlashedName(t *testing.T) {
+	dir := initTestRepo(t)
+
+	origDir, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	t.Setenv("gwt_WORKTREE_DIR", filepath.Join(dir, ".claude", "worktrees"))
+
+	wtPath, err := CreateWorktree("feat/thing", "")
+	if err != nil {
+		t.Fatalf("CreateWorktree() error: %v", err)
+	}
+
+	// Path should use dashes, not nested directories.
+	expectedPath := filepath.Join(dir, ".claude", "worktrees", "feat-thing")
+	if wtPath != expectedPath {
+		t.Errorf("worktree path = %q, want %q", wtPath, expectedPath)
+	}
+
+	info, err := os.Stat(wtPath)
+	if err != nil {
+		t.Fatalf("worktree path does not exist: %v", err)
+	}
+	if !info.IsDir() {
+		t.Error("worktree path is not a directory")
+	}
+}
+
 func TestCheckGitVersion(t *testing.T) {
 	err := checkGitVersion()
 	if err != nil {
