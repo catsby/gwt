@@ -4,13 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`gwt` (Git Worktree Switcher) is a Go CLI tool for navigating and managing git worktrees via a fuzzy-filterable TUI. It outputs worktree paths to stdout so a shell wrapper can `cd` into them. See `gwt.md` for the full design spec.
+`gwt` (Git Worktree Switcher) is a Go CLI tool for navigating and managing git worktrees via a fuzzy-filterable TUI. It outputs worktree paths to stdout so a shell wrapper can `cd` into them. See `GWT.md` for the full design spec.
+
+## Project Structure
+
+- `cmd/` — Cobra CLI commands (`root.go` is the entry point, one file per subcommand)
+- `tui/` — Bubbletea TUI models (`picker.go` for main picker, `rmpicker.go` for rm, `styles.go` for theming)
+- `gitops/` — Git shell-out helpers (worktree listing, branch parsing, root detection)
+- `main.go` — Calls `cmd.Execute()`
 
 ## Build & Run
 
 ```bash
 go build -o gwt .
 go run .
+```
+
+Or use `just`:
+
+```bash
+just build       # build binary
+just check       # lint + test
+just install     # install to $GOPATH/bin
 ```
 
 ## Test
@@ -43,3 +58,9 @@ go vet ./...
 - `gwt rm` — TUI picker to remove a worktree
 - `gwt list` — non-interactive list of worktrees
 - `gwt init <shell>` — print shell wrapper function (zsh/bash/fish)
+
+## Exit Codes
+
+- `0` — success, path printed to stdout
+- `1` — user cancelled (no stdout output)
+- `2` — error
